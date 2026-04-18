@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Patagonia Dog Art — Retratos en canvas para tu perro</title>
+
+<!-- Fonts: Fraunces (editorial serif) + Inter (body) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  /* ===========================
+     DESIGN TOKENS
+     =========================== */
+  :root {
+    --bg:        #FAF8F5;        /* warm off-white */
+    --bg-alt:    #F2EDE6;        /* slightly deeper cream */
+    --ink:       #1A1A1A;        /* near-black */
+    --ink-soft:  #4A4743;        /* warm charcoal */
+    --muted:     #8A847C;        /* soft grey-brown */
+    --line:      #E4DED4;        /* hairline */
+    --accent:    #C65D3C;        /* terracotta */
+    --accent-deep: #A84A2C;
+
+    --serif: "Fraunces", Georgia, serif;
+    --sans:  "Inter", system-ui, sans-serif;
+    --mono:  "JetBrains Mono", ui-monospace, monospace;
+
+    --max:   1280px;
+    --gutter: clamp(20px, 4vw, 48px);
+    --radius: 6px;
+
+    --ease: cubic-bezier(.2, .7, .2, 1);
+  }
+
+  /* ===========================
+     RESET
+     =========================== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--bg);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  img, svg { display: block; max-width: 100%; }
+  button { font: inherit; background: none; border: 0; cursor: pointer; color: inherit; }
+  a { color: inherit; text-decoration: none; }
+
+  ::selection { background: var(--accent); color: var(--bg); }
+
+  /* ===========================
+     TYPE SYSTEM
+     =========================== */
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 24px; height: 1px;
+    background: var(--muted);
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--serif);
+    font-weight: 400;
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+
+  h1 {
+    font-size: clamp(56px, 9vw, 132px);
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    line-height: 0.95;
+  }
+  h2 {
+    font-size: clamp(36px, 5.5vw, 68px);
+    font-variation-settings: "opsz" 100;
+  }
+  h3 {
+    font-size: clamp(22px, 2vw, 28px);
+    font-variation-settings: "opsz" 40;
+    letter-spacing: -0.01em;
+  }
+
+  .lede {
+    font-size: clamp(17px, 1.4vw, 20px);
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 52ch;
+    text-wrap: pretty;
+  }
+
+  .italic { font-style: italic; }
+
+  /* ===========================
+     LAYOUT
+     =========================== */
+  .wrap {
+    width: 100%;
+    max-width: var(--max);
+    margin: 0 auto;
+    padding-inline: var(--gutter);
+  }
+
+  section {
+    padding-block: clamp(80px, 12vw, 160px);
+    position: relative;
+  }
+
+  .section-head {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+    margin-bottom: clamp(48px, 7vw, 96px);
+  }
+  @media (min-width: 820px) {
+    .section-head {
+      grid-template-columns: 1fr 1.2fr;
+      gap: 64px;
+      align-items: end;
+    }
+  }
+
+  /* ===========================
+     BUTTONS
+     =========================== */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 18px 28px;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    border-radius: var(--radius);
+    transition: transform .4s var(--ease), background .3s var(--ease), color .3s var(--ease);
+    position: relative;
+    overflow: hidden;
+    will-change: transform;
+  }
+  .btn .arrow {
+    transition: transform .4s var(--ease);
+  }
+  .btn:hover .arrow { transform: translateX(6px); }
+
+  .btn-primary {
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .btn-primary:hover { background: var(--accent); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--ink);
+  }
+  .btn-ghost:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
+
+  /* ===========================
+     NAV
+     =========================== */
+  .nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 20px 0;
+    transition: padding .4s var(--ease), background .4s var(--ease), border-color .4s var(--ease);
+    border-bottom: 1px solid transparent;
+  }
+  .nav.scrolled {
+    background: rgba(250, 248, 245, 0.85);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    padding: 12px 0;
+    border-bottom-color: var(--line);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+  .brand-mark {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--ink);
+    position: relative;
+    flex: none;
+  }
+  .brand-mark::after {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .nav-links {
+    display: none;
+    gap: 32px;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  .nav-links a {
+    position: relative;
+    padding: 6px 0;
+  }
+  .nav-links a::after {
+    content: "";
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 0; height: 1px;
+    background: var(--accent);
+    transition: width .3s var(--ease);
+  }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-links a:hover::after { width: 100%; }
+
+  .nav-cta { display: none; }
+
+  @media (min-width: 900px) {
+    .nav-links { display: flex; }
+    .nav-cta   { display: inline-flex; }
+  }
+
+  /* Language toggle */
+  .lang-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    padding: 6px 4px;
+    margin-right: 8px;
+  }
+  .lang-toggle button {
+    padding: 4px 10px;
+    border-radius: 100px;
+    color: var(--muted);
+    transition: color .3s var(--ease), background .3s var(--ease);
+    font: inherit;
+    letter-spacing: inherit;
+  }
+  .lang-toggle button.active {
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .lang-toggle button:hover:not(.active) { color: var(--ink); }
+
+  /* Hamburger */
+  .hamburger {
+    width: 40px; height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 102;
+  }
+  .hamburger span {
+    position: absolute;
+    width: 22px;
+    height: 1.5px;
+    background: var(--ink);
+    transition: transform .4s var(--ease), opacity .2s var(--ease), top .3s var(--ease);
+  }
+  .hamburger span:nth-child(1) { top: 14px; }
+  .hamburger span:nth-child(2) { top: 20px; }
+  .hamburger span:nth-child(3) { top: 26px; }
+  body.menu-open .hamburger span:nth-child(1) { top: 20px; transform: rotate(45deg); }
+  body.menu-open .hamburger span:nth-child(2) { opacity: 0; }
+  body.menu-open .hamburger span:nth-child(3) { top: 20px; transform: rotate(-45deg); }
+
+  @media (min-width: 900px) {
+    .hamburger { display: none; }
+  }
+
+  /* Mobile menu overlay */
+  .mobile-menu {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 101;
+    padding: 100px var(--gutter) 40px;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-8px);
+    transition: opacity .4s var(--ease), transform .4s var(--ease);
+  }
+  body.menu-open .mobile-menu {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+  .mobile-menu nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-top: 1px solid var(--line);
+    padding-top: 24px;
+  }
+  .mobile-menu nav a {
+    font-family: var(--serif);
+    font-size: 40px;
+    line-height: 1.2;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .mobile-menu nav a span {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+  .mobile-menu .btn {
+    margin-top: auto;
+    align-self: stretch;
+  }
+
+  /* ===========================
+     HERO
+     =========================== */
+  .hero {
+    padding-top: clamp(140px, 18vw, 200px);
+    padding-bottom: clamp(60px, 8vw, 120px);
+    position: relative;
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 48px;
+    align-items: end;
+  }
+  @media (min-width: 980px) {
+    .hero-grid {
+      grid-template-columns: 1.3fr 1fr;
+      gap: 64px;
+    }
+  }
+
+  .hero h1 .accent {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 300;
+  }
+  .hero h1 .thin {
+    font-weight: 300;
+  }
+
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    margin-top: 36px;
+    padding-top: 28px;
+    border-top: 1px solid var(--line);
+    max-width: 640px;
+  }
+  .hero-meta > div { flex: 1 1 140px; }
+  .hero-meta .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .hero-meta .value {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 400;
+  }
+
+  .hero-cta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 40px;
+  }
+
+  /* Hero canvas placeholder — a framed canvas on an easel vibe */
+  .hero-frame {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    width: 100%;
+    background: var(--bg-alt);
+    border: 1px solid var(--line);
+    padding: 24px;
+    box-shadow: 0 60px 80px -40px rgba(26, 26, 26, 0.18);
+  }
+  .hero-frame::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(135deg, transparent 48%, rgba(26,26,26,0.04) 50%, transparent 52%),
+      linear-gradient(45deg, transparent 48%, rgba(26,26,26,0.04) 50%, transparent 52%);
+    background-size: 24px 24px;
+    pointer-events: none;
+  }
+  .hero-canvas {
+    width: 100%; height: 100%;
+    background:
+      radial-gradient(ellipse at 35% 30%, rgba(255,255,255,0.35), transparent 55%),
+      linear-gradient(160deg, #C65D3C 0%, #9B4327 55%, #3E2418 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-canvas::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgba(255,255,255,0.03) 0 2px,
+      transparent 2px 6px
+    );
+  }
+  .hero-tag {
+    position: absolute;
+    bottom: 16px; left: 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: rgba(250,248,245,0.7);
+    z-index: 2;
+  }
+  .hero-tag span { color: var(--bg); }
+
+  .hero-badge {
+    position: absolute;
+    top: -18px; right: -18px;
+    width: 120px; height: 120px;
+    background: var(--ink);
+    color: var(--bg);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 14px;
+    line-height: 1.2;
+    transform: rotate(-8deg);
+    animation: spinSlow 30s linear infinite;
+  }
+  @keyframes spinSlow {
+    from { transform: rotate(-8deg); }
+    to   { transform: rotate(352deg); }
+  }
+  .hero-badge-inner {
+    animation: spinSlow 30s linear infinite reverse;
+    padding: 0 10px;
+  }
+
+  /* Marquee strip */
+  .marquee {
+    border-block: 1px solid var(--line);
+    padding: 20px 0;
+    overflow: hidden;
+    background: var(--bg);
+  }
+  .marquee-track {
+    display: flex;
+    gap: 56px;
+    white-space: nowrap;
+    animation: marquee 40s linear infinite;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 22px;
+    color: var(--ink-soft);
+  }
+  .marquee-track span { display: inline-flex; align-items: center; gap: 56px; }
+  .marquee-track .dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    flex: none;
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+
+  /* ===========================
+     HOW IT WORKS
+     =========================== */
+  .steps {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    border-top: 1px solid var(--line);
+  }
+  @media (min-width: 800px) {
+    .steps { grid-template-columns: repeat(3, 1fr); }
+  }
+  .step {
+    padding: 40px 0;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    position: relative;
+  }
+  @media (min-width: 800px) {
+    .step {
+      padding: 48px 32px 48px 0;
+      border-bottom: none;
+      border-right: 1px solid var(--line);
+    }
+    .step:last-child { border-right: none; padding-right: 0; }
+    .step:not(:first-child) { padding-left: 32px; }
+  }
+  .step-num {
+    font-family: var(--serif);
+    font-size: 80px;
+    font-weight: 300;
+    line-height: 1;
+    color: var(--accent);
+    font-variation-settings: "opsz" 144;
+  }
+  .step-icon {
+    width: 48px; height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--ink);
+    border-radius: 50%;
+    color: var(--ink);
+  }
+  .step h3 { margin-bottom: 8px; }
+  .step p {
+    color: var(--ink-soft);
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 38ch;
+  }
+  .step-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: auto;
+    padding-top: 12px;
+  }
+
+  /* ===========================
+     GALLERY
+     =========================== */
+  .gallery-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+  .gallery-bar button {
+    padding: 8px 16px;
+    font-size: 13px;
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    color: var(--ink-soft);
+    transition: all .3s var(--ease);
+  }
+  .gallery-bar button:hover { border-color: var(--ink); color: var(--ink); }
+  .gallery-bar button.active {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: clamp(12px, 1.5vw, 20px);
+  }
+  @media (min-width: 720px) {
+    .gallery { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (min-width: 1000px) {
+    .gallery { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  .piece {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background: var(--bg-alt);
+    cursor: pointer;
+    transition: transform .6s var(--ease);
+  }
+  .piece:nth-child(5n+2) { aspect-ratio: 1 / 1; }
+  .piece:nth-child(5n+4) { aspect-ratio: 3 / 4; }
+
+  .piece-art {
+    position: absolute;
+    inset: 0;
+    transition: transform .8s var(--ease);
+  }
+  .piece:hover .piece-art { transform: scale(1.04); }
+  .piece-art::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(255,255,255,0.04) 0 1px,
+      transparent 1px 4px
+    );
+  }
+
+  /* Per-piece gradient moods */
+  .piece-art.mood-1 { background: linear-gradient(165deg, #E8D5C4 0%, #C65D3C 60%, #6B2F1C 100%); }
+  .piece-art.mood-2 { background: linear-gradient(135deg, #2C2826 0%, #5A4F47 50%, #8B7A68 100%); }
+  .piece-art.mood-3 { background: linear-gradient(180deg, #F4E4D4 0%, #D4A574 50%, #8B5E3C 100%); }
+  .piece-art.mood-4 { background: radial-gradient(ellipse at 40% 30%, #F2EDE6 0%, #B8A68F 60%, #4A3F33 100%); }
+  .piece-art.mood-5 { background: linear-gradient(200deg, #C65D3C 0%, #2C2826 100%); }
+  .piece-art.mood-6 { background: linear-gradient(160deg, #E8E4DD 0%, #9A9188 70%, #3E3A35 100%); }
+  .piece-art.mood-7 { background: radial-gradient(ellipse at 60% 40%, #D4A574 0%, #6B4A2E 80%); }
+  .piece-art.mood-8 { background: linear-gradient(135deg, #F2EDE6 0%, #C65D3C 70%, #2C2826 100%); }
+
+  .piece-meta {
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    color: var(--bg);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    z-index: 2;
+    background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity .4s var(--ease), transform .4s var(--ease);
+  }
+  .piece:hover .piece-meta { opacity: 1; transform: none; }
+  .piece-meta .name {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    color: var(--bg);
+  }
+
+  .piece-idx {
+    position: absolute;
+    top: 12px; left: 12px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: rgba(250,248,245,0.8);
+    z-index: 2;
+  }
+
+  /* ===========================
+     ESTILOS
+     =========================== */
+  .estilos {
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .estilos h2 { color: var(--bg); }
+  .estilos .lede { color: rgba(250,248,245,0.7); }
+  .estilos .eyebrow { color: rgba(250,248,245,0.55); }
+  .estilos .eyebrow::before { background: rgba(250,248,245,0.55); }
+
+  .estilos-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    border-top: 1px solid rgba(250,248,245,0.12);
+  }
+  @media (min-width: 700px) {
+    .estilos-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 1020px) {
+    .estilos-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  .estilo {
+    padding: 32px 24px 32px 0;
+    border-bottom: 1px solid rgba(250,248,245,0.12);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: relative;
+    transition: background .4s var(--ease);
+  }
+  @media (min-width: 700px) {
+    .estilo {
+      border-right: 1px solid rgba(250,248,245,0.12);
+      padding: 32px 24px;
+    }
+    .estilos-grid .estilo:nth-child(2n) { border-right: none; }
+  }
+  @media (min-width: 1020px) {
+    .estilos-grid .estilo:nth-child(2n) { border-right: 1px solid rgba(250,248,245,0.12); }
+    .estilos-grid .estilo:nth-child(4n) { border-right: none; }
+  }
+  .estilo:hover { background: rgba(250,248,245,0.03); }
+
+  .estilo-swatch {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    margin-bottom: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  .estilo-swatch::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(255,255,255,0.03) 0 1px,
+      transparent 1px 4px
+    );
+  }
+
+  .estilo h3 {
+    color: var(--bg);
+    font-style: italic;
+    font-weight: 400;
+  }
+  .estilo-num {
+    position: absolute;
+    top: 32px; right: 24px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: rgba(250,248,245,0.45);
+  }
+  .estilo p {
+    color: rgba(250,248,245,0.65);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .estilo-price {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid rgba(250,248,245,0.12);
+  }
+
+  /* ===========================
+     TESTIMONIOS
+     =========================== */
+  .testimonios-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  @media (min-width: 800px) {
+    .testimonios-grid { grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  }
+
+  .testimonio {
+    border: 1px solid var(--line);
+    padding: 32px;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    transition: transform .4s var(--ease), border-color .3s var(--ease);
+  }
+  .testimonio:hover {
+    transform: translateY(-4px);
+    border-color: var(--ink);
+  }
+
+  .quote-mark {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 60px;
+    line-height: 0.3;
+    color: var(--accent);
+    height: 24px;
+  }
+
+  .testimonio blockquote {
+    font-family: var(--serif);
+    font-size: 20px;
+    line-height: 1.45;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    text-wrap: pretty;
+  }
+
+  .testimonio-author {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: auto;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+  .avatar {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    flex: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .avatar-1 { background: linear-gradient(135deg, #C65D3C, #6B2F1C); }
+  .avatar-2 { background: linear-gradient(135deg, #8B7A68, #2C2826); }
+  .avatar-3 { background: linear-gradient(135deg, #D4A574, #6B4A2E); }
+  .avatar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(45deg, rgba(255,255,255,0.06) 0 1px, transparent 1px 3px);
+  }
+
+  .author-name { font-weight: 500; font-size: 15px; }
+  .author-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .stars {
+    display: inline-flex;
+    gap: 2px;
+    color: var(--accent);
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+
+  /* ===========================
+     FAQ
+     =========================== */
+  .faq-wrap {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    max-width: 900px;
+    margin: 0 auto;
+    border-top: 1px solid var(--line);
+  }
+
+  .faq-item {
+    border-bottom: 1px solid var(--line);
+  }
+  .faq-q {
+    width: 100%;
+    padding: 28px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    text-align: left;
+    font-family: var(--serif);
+    font-size: clamp(20px, 2.2vw, 26px);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    transition: color .3s var(--ease);
+  }
+  .faq-q:hover { color: var(--accent); }
+  .faq-q .num {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    font-weight: 500;
+    flex: none;
+  }
+  .faq-q-text { flex: 1; text-wrap: balance; }
+  .faq-icon {
+    width: 28px; height: 28px;
+    position: relative;
+    flex: none;
+    transition: transform .4s var(--ease);
+  }
+  .faq-icon::before, .faq-icon::after {
+    content: "";
+    position: absolute;
+    top: 50%; left: 50%;
+    background: currentColor;
+    transition: transform .4s var(--ease);
+  }
+  .faq-icon::before {
+    width: 14px; height: 1px;
+    transform: translate(-50%, -50%);
+  }
+  .faq-icon::after {
+    width: 1px; height: 14px;
+    transform: translate(-50%, -50%);
+  }
+  .faq-item.open .faq-icon::after { transform: translate(-50%, -50%) scaleY(0); }
+
+  .faq-a {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .5s var(--ease);
+  }
+  .faq-a-inner {
+    padding: 0 0 32px 60px;
+    color: var(--ink-soft);
+    font-size: 16px;
+    line-height: 1.7;
+    max-width: 70ch;
+  }
+  @media (max-width: 600px) {
+    .faq-a-inner { padding-left: 0; }
+  }
+
+  /* ===========================
+     FINAL CTA
+     =========================== */
+  .final {
+    background: var(--bg-alt);
+    padding: clamp(100px, 16vw, 200px) 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .final-inner {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .final h2 {
+    font-size: clamp(48px, 9vw, 128px);
+    line-height: 0.95;
+    margin-bottom: 32px;
+  }
+  .final h2 .italic { color: var(--accent); font-weight: 300; }
+
+  .final-sub {
+    font-size: 18px;
+    color: var(--ink-soft);
+    max-width: 52ch;
+    margin: 0 auto 48px;
+    line-height: 1.5;
+  }
+
+  .final::before {
+    content: "";
+    position: absolute;
+    bottom: -100px; left: 50%;
+    transform: translateX(-50%);
+    width: 1200px; height: 1200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(198,93,60,0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* ===========================
+     FOOTER
+     =========================== */
+  footer {
+    background: var(--ink);
+    color: var(--bg);
+    padding: 80px 0 32px;
+  }
+  .foot-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 48px;
+    padding-bottom: 64px;
+    border-bottom: 1px solid rgba(250,248,245,0.15);
+  }
+  @media (min-width: 800px) {
+    .foot-grid {
+      grid-template-columns: 1.5fr repeat(3, 1fr);
+      gap: 48px;
+    }
+  }
+  .foot-brand h3 {
+    color: var(--bg);
+    font-size: 32px;
+    font-style: italic;
+    margin-bottom: 16px;
+    max-width: 14ch;
+  }
+  .foot-brand p {
+    color: rgba(250,248,245,0.6);
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 40ch;
+  }
+
+  .foot-col h4 {
+    color: var(--bg);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .foot-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .foot-col a {
+    color: rgba(250,248,245,0.7);
+    font-size: 15px;
+    transition: color .3s var(--ease);
+  }
+  .foot-col a:hover { color: var(--accent); }
+
+  .foot-bottom {
+    padding-top: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: rgba(250,248,245,0.5);
+    text-transform: uppercase;
+  }
+  @media (min-width: 700px) { .foot-bottom { flex-direction: row; } }
+
+  /* Giant wordmark */
+  .wordmark {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 300;
+    font-size: clamp(80px, 22vw, 340px);
+    line-height: 0.85;
+    letter-spacing: -0.04em;
+    color: var(--bg);
+    text-align: center;
+    padding: 0 var(--gutter) 60px;
+    border-bottom: 1px solid rgba(250,248,245,0.15);
+    margin-bottom: 40px;
+    opacity: 0.95;
+  }
+
+  /* ===========================
+     SCROLL REVEAL
+     =========================== */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity .9s var(--ease), transform .9s var(--ease);
+  }
+  .reveal.in { opacity: 1; transform: none; }
+  .reveal.d1 { transition-delay: .08s; }
+  .reveal.d2 { transition-delay: .16s; }
+  .reveal.d3 { transition-delay: .24s; }
+  .reveal.d4 { transition-delay: .32s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .marquee-track, .hero-badge, .hero-badge-inner { animation: none !important; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     NAVIGATION (sticky; collapses into hamburger on mobile)
+============================================================= -->
+<header class="nav" id="nav">
+  <div class="wrap nav-inner">
+    <a href="#top" class="brand" aria-label="Patagonia Dog Art — Home">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span style="font-style:italic;font-weight:300">Patagonia Dog Art</span>
+    </a>
+
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#galeria" data-i18n="nav.gallery">Galería</a>
+      <a href="#como" data-i18n="nav.how">Cómo funciona</a>
+      <a href="#testimonios" data-i18n="nav.testimonials">Testimonios</a>
+      <a href="#faq" data-i18n="nav.faq">FAQ</a>
+    </nav>
+
+    <div class="lang-toggle" role="group" aria-label="Language">
+      <button type="button" data-lang="es" class="active">ES</button>
+      <button type="button" data-lang="en">EN</button>
+    </div>
+
+    <a href="#final" class="btn btn-primary nav-cta">
+      <span data-i18n="nav.cta">Pedí tu retrato</span>
+      <span class="arrow" aria-hidden="true">→</span>
+    </a>
+
+    <button class="hamburger" aria-label="Abrir menú" aria-expanded="false" id="hamb">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<!-- Mobile overlay menu -->
+<div class="mobile-menu" id="mobileMenu" aria-hidden="true">
+  <nav aria-label="Mobile">
+    <a href="#galeria"><span>01</span><span data-i18n="nav.gallery">Galería</span></a>
+    <a href="#como"><span>02</span><span data-i18n="nav.how">Cómo funciona</span></a>
+    <a href="#testimonios"><span>03</span><span data-i18n="nav.testimonials">Testimonios</span></a>
+    <a href="#faq"><span>04</span>FAQ</a>
+  </nav>
+  <div class="lang-toggle" role="group" aria-label="Language" style="margin-top:32px;align-self:flex-start">
+    <button type="button" data-lang="es" class="active">ES</button>
+    <button type="button" data-lang="en">EN</button>
+  </div>
+  <a href="#final" class="btn btn-primary" style="margin-top:16px">
+    <span data-i18n="nav.cta">Pedí tu retrato</span> <span class="arrow">→</span>
+  </a>
+</div>
+
+<!-- ============================================================
+     HERO
+============================================================= -->
+<section class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <h1 class="reveal" data-i18n-html="hero.h1">
+        El retrato <span class="accent">que tu perro</span><br>
+        <span class="thin">merece</span>
+      </h1>
+
+      <p class="lede reveal d2" style="margin-top:32px" data-i18n="hero.lede">
+        Retratos hechos a mano, a partir de tu foto favorita.
+        Cada pieza es única, pintada con cuidado y enviada directo a tu casa.
+      </p>
+
+      <div class="hero-cta reveal d3">
+        <a href="#final" class="btn btn-primary">
+          <span data-i18n="nav.cta">Pedí tu retrato</span>
+          <span class="arrow">→</span>
+        </a>
+        <a href="#galeria" class="btn btn-ghost" data-i18n="hero.gallery">Ver galería</a>
+      </div>
+
+      <div class="hero-meta reveal d4">
+        <div>
+          <div class="label" data-i18n="hero.deliveryLabel">Entrega</div>
+          <div class="value" data-i18n="hero.deliveryValue">30 días</div>
+        </div>
+        <div>
+          <div class="label" data-i18n="hero.shipLabel">Envíos</div>
+          <div class="value" data-i18n="hero.shipValue">Internacionales</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Canvas showcase placeholder -->
+    <div class="hero-visual reveal d2" style="position:relative">
+      <div class="hero-frame">
+        <div class="hero-canvas">
+          <div class="hero-tag" data-i18n-html="hero.tag"><span>CANVAS 40×50CM</span> · ÓLEO SOBRE LIENZO</div>
+        </div>
+      </div>
+      <div class="hero-badge" aria-hidden="true">
+        <div class="hero-badge-inner" data-i18n-html="hero.badge">Hecho<br>a mano</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Marquee strip -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span data-i18n-html="marquee">Retratos a medida<i class="dot"></i>Hecho a mano<i class="dot"></i>Envíos internacionales<i class="dot"></i>30 días de producción<i class="dot"></i>Un recuerdo para toda la vida<i class="dot"></i></span>
+    <span data-i18n-html="marquee">Retratos a medida<i class="dot"></i>Hecho a mano<i class="dot"></i>Envíos internacionales<i class="dot"></i>30 días de producción<i class="dot"></i>Un recuerdo para toda la vida<i class="dot"></i></span>
+  </div>
+</div>
+
+<!-- ============================================================
+     GALERÍA
+============================================================= -->
+<section id="galeria">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow reveal" data-i18n="gal.eyebrow">Galería</div>
+        <h2 class="reveal d1" style="margin-top:20px" data-i18n-html="gal.h2">Obras <span class="italic" style="color:var(--accent);font-weight:300">recientes</span></h2>
+      </div>
+      <p class="lede reveal d2" data-i18n="gal.lede">
+        Una selección de retratos realizados en los últimos meses. Cada uno nació de una foto enviada por su familia.
+      </p>
+    </div>
+
+    <div class="gallery-bar reveal">
+      <button class="active" data-filter="all" data-i18n="gal.all">Todos</button>
+      <button data-filter="acuarela" data-i18n="gal.watercolor">Acuarela</button>
+      <button data-filter="realismo" data-i18n="gal.realism">Realismo</button>
+      <button data-filter="popart">Pop Art</button>
+      <button data-filter="minimal">Minimal</button>
+    </div>
+
+    <div class="gallery" id="gallery">
+      <!-- Each piece: mood = gradient placeholder standing in for a photographed canvas -->
+      <figure class="piece reveal" data-cat="realismo">
+        <div class="piece-art mood-1"></div>
+        <div class="piece-idx">001 / RLS</div>
+        <figcaption class="piece-meta">
+          <span class="name">Olivia</span>
+          <span>ÓLEO · 40×50</span>
+        </figcaption>
+      </figure>
+      <figure class="piece reveal d1" data-cat="acuarela">
+        <div class="piece-art mood-2"></div>
+        <div class="piece-idx">002 / ACU</div>
+        <figcaption class="piece-meta">
+          <span class="name">Morris</span>
+          <span>ACUARELA · 30×30</span>
+        </figcaption>
+      </figure>
+      <figure class="piece reveal d2" data-cat="minimal">
+        <div class="piece-art mood-3"></div>
+        <div class="piece-idx">003 / MIN</div>
+        <figcaption class="piece-meta">
+          <span class="name">Teo</span>
+          <span>LÍNEA · 50×70</span>
+        </figcaption>
+      </figure>
+      <figure class="piece reveal d3" data-cat="realismo">
+        <div class="piece-art mood-4"></div>
+        <div class="piece-idx">004 / RLS</div>
+        <figcaption class="piece-meta">
+          <span class="name">Luna</span>
+          <span>ÓLEO · 30×40</span>
+        </figcaption>
+      </figure>
+      <figure class="piece reveal" data-cat="popart">
+        <div class="piece-art mood-5"></div>
+        <div class="piece-idx">005 / POP</div>
+        <figcaption class="piece-meta">
+          <span class="name">Rocco</span>
+          <span>POP ART · 40×40</span>
+        </figcaption>
+      </figure>
+      <figure class="piece reveal d1" data-cat="minimal">
+        <div class="piece-art mood-6"></div>
+        <div class="piece-idx">006 / MIN</div>
+        <figcaption class="piece-meta">
+          <span class="name">Pancho</span>
+          <span>CARBONCILLO · 30×40</span>
+        </figcaption>
+      </figure>
+      <figure class="piece reveal d2" data-cat="acuarela">
+        <div class="piece-art mood-7"></div>
+        <div class="piece-idx">007 / ACU</div>
+        <figcaption class="piece-meta">
+          <span class="name">Mila</span>
+          <span>ACUARELA · 40×50</span>
+        </figcaption>
+      </figure>
+      <figure class="piece reveal d3" data-cat="popart">
+        <div class="piece-art mood-8"></div>
+        <div class="piece-idx">008 / POP</div>
+        <figcaption class="piece-meta">
+          <span class="name">Simón</span>
+          <span>POP ART · 50×50</span>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- ============================================================
+     CÓMO FUNCIONA — 3 steps
+============================================================= -->
+<section id="como" style="background:var(--bg-alt)">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow reveal" data-i18n="how.eyebrow">Proceso</div>
+        <h2 class="reveal d1" style="margin-top:20px" data-i18n-html="how.h2">Tres pasos,<br><span class="italic" style="color:var(--accent);font-weight:300">una obra de arte.</span></h2>
+      </div>
+      <p class="lede reveal d2" data-i18n="how.lede">
+        Desde que nos mandás la foto hasta que colgás el cuadro en tu pared, todo el proceso toma
+        un par de semanas. Simple, cuidado, sin sorpresas.
+      </p>
+    </div>
+
+    <div class="steps">
+
+      <!-- Step 1 -->
+      <div class="step reveal">
+        <div class="step-num">01</div>
+        <div class="step-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+            <rect x="3" y="6" width="18" height="14" rx="1"/>
+            <circle cx="12" cy="13" r="4"/>
+            <path d="M8 6l1.5-2h5L16 6"/>
+          </svg>
+        </div>
+        <h3 data-i18n="how.s1.t">Enviá una foto</h3>
+        <p data-i18n="how.s1.p">Mandanos la mejor foto de tu perro por WhatsApp o mail. Cuanta más luz natural y detalle, mejor. Te ayudamos a elegirla si dudás.</p>
+        <div class="step-meta" data-i18n="how.s1.m">Formato libre · Alta resolución</div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step reveal d1">
+        <div class="step-num">02</div>
+        <div class="step-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+            <path d="M12 2l2.5 6.5L21 10l-5 4.5L17.5 22 12 18l-5.5 4L8 14.5 3 10l6.5-1.5z"/>
+          </svg>
+        </div>
+        <h3 data-i18n="how.s2.t">Elegí el tamaño</h3>
+        <p data-i18n="how.s2.p">Trabajamos en distintos formatos, hasta tamaño A3. Te asesoramos según dónde lo quieras colgar y el efecto que busques.</p>
+        <div class="step-meta" data-i18n="how.s2.m">Hasta A3 · Elegí el tamaño</div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step reveal d2">
+        <div class="step-num">03</div>
+        <div class="step-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+            <path d="M3 8l9-5 9 5v8l-9 5-9-5z"/>
+            <path d="M3 8l9 5 9-5M12 13v10"/>
+          </svg>
+        </div>
+        <h3 data-i18n="how.s3.t">Recibilo en casa</h3>
+        <p data-i18n="how.s3.p">Embalado con cuidado y entregado en tu casa. El regalo perfecto para vos o para quien quieras.</p>
+        <div class="step-meta" data-i18n="how.s3.m">Envío gratis · Seguro</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     TESTIMONIOS
+============================================================= -->
+<section id="testimonios">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow reveal" data-i18n="test.eyebrow">Testimonios</div>
+        <h2 class="reveal d1" style="margin-top:20px" data-i18n-html="test.h2">Escuchá a<br><span class="italic" style="color:var(--accent);font-weight:300">los dueños.</span></h2>
+      </div>
+      <p class="lede reveal d2" data-i18n="test.lede">
+        Algunas palabras de quienes recibieron su obra personalizada en casa, y nos escribieron después.
+      </p>
+    </div>
+
+    <div class="testimonios-grid">
+
+      <article class="testimonio reveal">
+        <div class="quote-mark" aria-hidden="true">"</div>
+        <blockquote data-i18n="test.1.q">Cuando abrí la caja me largué a llorar. Capturaron exactamente esa mirada que hacía Olivia cuando le hablabas. Es como tenerla de vuelta en casa.</blockquote>
+        <div class="testimonio-author">
+          <div class="avatar avatar-1" aria-hidden="true"></div>
+          <div>
+            <div class="author-name">Camila Fernández</div>
+            <div class="author-meta" data-i18n="test.1.m">Bariloche · Óleo 40×50</div>
+          </div>
+          <div class="stars" style="margin-left:auto" aria-label="5 estrellas">★★★★★</div>
+        </div>
+      </article>
+
+      <article class="testimonio reveal d1">
+        <div class="quote-mark" aria-hidden="true">"</div>
+        <blockquote data-i18n="test.2.q">Pedí el acuarela de Morris para el cumple de mi vieja. No podía creer el nivel de detalle. Hoy es el centro del living.</blockquote>
+        <div class="testimonio-author">
+          <div class="avatar avatar-2" aria-hidden="true"></div>
+          <div>
+            <div class="author-name">Nicolás Vidal</div>
+            <div class="author-meta" data-i18n="test.2.m">Buenos Aires · Acuarela 30×30</div>
+          </div>
+          <div class="stars" style="margin-left:auto" aria-label="5 estrellas">★★★★★</div>
+        </div>
+      </article>
+
+      <article class="testimonio reveal d2">
+        <div class="quote-mark" aria-hidden="true">"</div>
+        <blockquote data-i18n="test.3.q">El proceso fue todo. Me consultaron el boceto, me mandaron fotos del avance. Se nota que lo hacen con cariño, no en serie.</blockquote>
+        <div class="testimonio-author">
+          <div class="avatar avatar-3" aria-hidden="true"></div>
+          <div>
+            <div class="author-name">Martina Ruiz</div>
+            <div class="author-meta" data-i18n="test.3.m">Rosario · Patagónico 50×70</div>
+          </div>
+          <div class="stars" style="margin-left:auto" aria-label="5 estrellas">★★★★★</div>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     FAQ
+============================================================= -->
+<section id="faq" style="background:var(--bg-alt)">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow reveal">FAQ</div>
+        <h2 class="reveal d1" style="margin-top:20px" data-i18n-html="faq.h2">Preguntas <span class="italic" style="color:var(--accent);font-weight:300">frecuentes.</span></h2>
+      </div>
+      <p class="lede reveal d2" data-i18n="faq.lede">
+        Todo lo que quieras saber antes de hacer tu pedido. ¿No encontrás tu respuesta? Escribinos por WhatsApp o mail —
+        contestamos en pocas horas.
+      </p>
+    </div>
+
+    <div class="faq-wrap">
+      <!-- Items: click toggles .open on parent -->
+      <div class="faq-item reveal">
+        <button class="faq-q" aria-expanded="false">
+          <span class="num">01</span>
+          <span class="faq-q-text" data-i18n="faq.1.q">¿Cuánto tarda un retrato en estar listo?</span>
+          <span class="faq-icon" aria-hidden="true"></span>
+        </button>
+        <div class="faq-a">
+          <div class="faq-a-inner" data-i18n="faq.1.a">
+            Acordamos una fecha de envío aproximada de 30 días. Te mantenemos al tanto de los avances en todo momento.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item reveal">
+        <button class="faq-q" aria-expanded="false">
+          <span class="num">02</span>
+          <span class="faq-q-text" data-i18n="faq.2.q">¿Hacen envíos a todo el país?</span>
+          <span class="faq-icon" aria-hidden="true"></span>
+        </button>
+        <div class="faq-a">
+          <div class="faq-a-inner" data-i18n="faq.2.a">
+            Sí, enviamos a toda la Argentina y a nivel internacional.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item reveal">
+        <button class="faq-q" aria-expanded="false">
+          <span class="num">03</span>
+          <span class="faq-q-text" data-i18n="faq.3.q">¿Qué foto necesito mandarles?</span>
+          <span class="faq-icon" aria-hidden="true"></span>
+        </button>
+        <div class="faq-a">
+          <div class="faq-a-inner" data-i18n="faq.3.a">
+            Lo ideal es una foto con luz natural, enfocada, donde se vea bien la cara y los ojos de tu perro.
+            Si tenés varias, mandalas todas — elegimos juntos. Si la única foto buena es vieja o de baja
+            resolución también se puede trabajar; hacemos magia con eso.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item reveal">
+        <button class="faq-q" aria-expanded="false">
+          <span class="num">04</span>
+          <span class="faq-q-text" data-i18n="faq.4.q">¿Qué formatos y tamaños manejan?</span>
+          <span class="faq-icon" aria-hidden="true"></span>
+        </button>
+        <div class="faq-a">
+          <div class="faq-a-inner" data-i18n="faq.4.a">
+            Elegí el tamaño que vos quieras, desde postal hasta A3.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item reveal">
+        <button class="faq-q" aria-expanded="false">
+          <span class="num">05</span>
+          <span class="faq-q-text" data-i18n="faq.5.q">¿Se pueden retratar varios perros en el mismo canvas?</span>
+          <span class="faq-icon" aria-hidden="true"></span>
+        </button>
+        <div class="faq-a">
+          <div class="faq-a-inner" data-i18n="faq.5.a">
+            Sí, podemos acordar la composición y trabajar a partir de varias fotos.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     FINAL CTA
+============================================================= -->
+<section class="final" id="final">
+  <div class="wrap final-inner">
+    <div class="eyebrow reveal" style="justify-content:center;display:inline-flex" data-i18n="final.eyebrow">Empezá ahora</div>
+    <h2 class="reveal d1" style="margin-top:24px" data-i18n-html="final.h2">
+      Un recuerdo<br>
+      <span class="italic">para toda la vida.</span>
+    </h2>
+    <p class="final-sub reveal d2" data-i18n="final.sub">
+      Mandanos hoy la foto de tu perro y empezamos el proceso. Sin costo inicial, sin compromiso —
+      conversamos la idea y, si te convence, seguimos.
+    </p>
+    <div class="reveal d3" style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+      <a href="mailto:hola@patagoniadogart.com.ar" class="btn btn-primary">
+        <span data-i18n="nav.cta">Pedí tu retrato</span>
+        <span class="arrow">→</span>
+      </a>
+      <a href="https://wa.me/+5491135664030" class="btn btn-ghost" data-i18n="final.wa">Escribinos por WhatsApp</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     FOOTER
+============================================================= -->
+<footer>
+  <div class="wordmark">Patagonia Dog Art</div>
+
+  <div class="wrap">
+    <div class="foot-grid">
+
+      <div class="foot-brand">
+        <h3 data-i18n="foot.tagline">Tu perro en una obra de arte única.</h3>
+        <p data-i18n="foot.about">
+          Estudio de artistas en la Patagonia argentina.
+        </p>
+      </div>
+
+      <div class="foot-col">
+        <h4 data-i18n="foot.navigate">Navegar</h4>
+        <ul>
+          <li><a href="#galeria" data-i18n="nav.gallery">Galería</a></li>
+          <li><a href="#como" data-i18n="nav.how">Cómo funciona</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </div>
+
+      <div class="foot-col">
+        <h4 data-i18n="foot.contact">Contacto</h4>
+        <ul>
+          <li><a href="#">hola@patagoniadogart.com.ar</a></li>
+          <li><a href="#">Villa la Angostura</a></li>
+        </ul>
+      </div>
+
+      <div class="foot-col">
+        <h4 data-i18n="foot.follow">Seguinos</h4>
+        <ul>
+          <li><a href="https://www.instagram.com/patagoniadogart/" target="_blank" rel="noopener noreferrer">Instagram ↗</a></li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="foot-bottom">
+      <div data-i18n="foot.copy">© 2026 Patagonia Dog Art · Todos los derechos reservados</div>
+      <div data-i18n="foot.made">Hecho con cariño en Patagonia</div>
+    </div>
+  </div>
+</footer>
+
+<!-- ============================================================
+     BEHAVIOR
+     — nav scroll state
+     — mobile menu toggle (+ close on link click)
+     — IntersectionObserver reveals
+     — FAQ accordion
+     — Gallery filter
+============================================================= -->
+<script>
+  /* ----- Nav scroll shadow ----- */
+  const nav = document.getElementById('nav');
+  const setNavState = () => nav.classList.toggle('scrolled', window.scrollY > 20);
+  setNavState();
+  window.addEventListener('scroll', setNavState, { passive: true });
+
+  /* ----- Mobile menu ----- */
+  const hamb = document.getElementById('hamb');
+  const menu = document.getElementById('mobileMenu');
+  const toggleMenu = (force) => {
+    const next = force !== undefined ? force : !document.body.classList.contains('menu-open');
+    document.body.classList.toggle('menu-open', next);
+    hamb.setAttribute('aria-expanded', String(next));
+    menu.setAttribute('aria-hidden', String(!next));
+    document.body.style.overflow = next ? 'hidden' : '';
+  };
+  hamb.addEventListener('click', () => toggleMenu());
+  // Close menu when a link is tapped
+  menu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => toggleMenu(false)));
+  // Close on Esc
+  window.addEventListener('keydown', e => { if (e.key === 'Escape') toggleMenu(false); });
+
+  /* ----- Reveal on scroll ----- */
+  const reveals = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  reveals.forEach(el => io.observe(el));
+
+  // Belt-and-suspenders: anything already in the initial viewport on load
+  // should reveal immediately, even if the IO callback hasn't fired yet.
+  const revealInView = () => {
+    const h = window.innerHeight;
+    reveals.forEach(el => {
+      const r = el.getBoundingClientRect();
+      if (r.top < h && r.bottom > 0) {
+        el.classList.add('in');
+        io.unobserve(el);
+      }
+    });
+  };
+  revealInView();
+  window.addEventListener('load', revealInView);
+
+  /* ----- FAQ accordion ----- */
+  document.querySelectorAll('.faq-item').forEach(item => {
+    const q = item.querySelector('.faq-q');
+    const a = item.querySelector('.faq-a');
+    q.addEventListener('click', () => {
+      const isOpen = item.classList.toggle('open');
+      q.setAttribute('aria-expanded', String(isOpen));
+      a.style.maxHeight = isOpen ? a.scrollHeight + 'px' : '0px';
+    });
+  });
+  // Recalculate open FAQ heights on resize
+  window.addEventListener('resize', () => {
+    document.querySelectorAll('.faq-item.open .faq-a').forEach(a => {
+      a.style.maxHeight = a.scrollHeight + 'px';
+    });
+  });
+
+  /* ----- Gallery filter ----- */
+  const filters = document.querySelectorAll('.gallery-bar button');
+  const pieces  = document.querySelectorAll('.piece');
+  filters.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filters.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const cat = btn.dataset.filter;
+      pieces.forEach(p => {
+        const show = cat === 'all' || p.dataset.cat === cat;
+        p.style.display = show ? '' : 'none';
+      });
+    });
+  });
+
+  /* ----- i18n ----- */
+  const I18N = {
+    en: {
+      'nav.how': 'How it works',
+      'nav.gallery': 'Gallery',
+      'nav.testimonials': 'Testimonials',
+      'nav.faq': 'FAQ',
+      'nav.cta': 'Order your portrait',
+
+      'hero.h1': 'The portrait <span class="accent">your dog</span><br><span class="thin">deserves</span>',
+      'hero.lede': 'Hand-painted portraits, made from your favorite photo. Each piece is unique, crafted with care and shipped straight to your door.',
+      'hero.gallery': 'View gallery',
+      'hero.deliveryLabel': 'Delivery',
+      'hero.deliveryValue': '30 days',
+      'hero.shipLabel': 'Shipping',
+      'hero.shipValue': 'All over the world',
+      'hero.tag': '<span>CANVAS 40×50CM</span> · OIL ON LINEN',
+      'hero.badge': 'Hand<br>made',
+
+      'marquee': 'Custom portraits<i class="dot"></i>Handmade<i class="dot"></i>International shipping<i class="dot"></i>30-day production<i class="dot"></i>A memory you can keep forever<i class="dot"></i>',
+
+      'how.eyebrow': 'Process',
+      'how.h2': 'Three steps,<br><span class="italic" style="color:var(--accent);font-weight:300">one work of art.</span>',
+      'how.lede': 'From the moment you send us the photo to the day you hang it on your wall, the whole process takes a couple of weeks. Simple, careful, no surprises.',
+      'how.s1.t': 'Send a photo',
+      'how.s1.p': 'Send us the best photo of your dog by WhatsApp or email. The more natural light and detail, the better. We can help you pick if you\'re unsure.',
+      'how.s1.m': 'Any format · High resolution',
+      'how.s2.t': 'Choose the size',
+      'how.s2.p': 'We work in various formats, up to A3 size. We\'ll advise you based on where you want to hang it and the effect you\'re after.',
+      'how.s2.m': 'Up to A3 · Choose your size',
+      'how.s3.t': 'Receive it at home',
+      'how.s3.p': 'Carefully packaged and delivered to your home. Perfect present for you or your loved ones.',
+      'how.s3.m': 'Free shipping · Insured',
+
+      'gal.eyebrow': 'Gallery',
+      'gal.h2': 'Recent <span class="italic" style="color:var(--accent);font-weight:300">works</span>',
+      'gal.lede': 'A selection of portraits made over the last few months. Each one born from a photo sent by its family.',
+      'gal.all': 'All',
+      'gal.watercolor': 'Watercolor',
+      'gal.realism': 'Realism',
+
+      'test.eyebrow': 'Testimonials',
+      'test.h2': 'Hear from<br><span class="italic" style="color:var(--accent);font-weight:300">the owners.</span>',
+      'test.lede': 'A few words from the people who received their personalised artwork at home, and wrote to us afterwards.',
+      'test.1.q': 'When I opened the box I started crying. They captured exactly that look Olivia used to have when you talked to her. It\'s like having her back home.',
+      'test.1.m': 'Bariloche · Oil 40×50',
+      'test.2.q': 'I ordered the watercolor of Morris for my mom\'s birthday. I couldn\'t believe the level of detail. Today it\'s the centerpiece of her living room.',
+      'test.2.m': 'Buenos Aires · Watercolor 30×30',
+      'test.3.q': 'The process was everything. They consulted me on the sketch, sent progress photos. You can tell they do it with love, not in batches.',
+      'test.3.m': 'Rosario · Patagonian 50×70',
+
+      'faq.h2': 'Frequently asked <span class="italic" style="color:var(--accent);font-weight:300">questions.</span>',
+      'faq.lede': 'Everything you might want to know before placing an order. Can\'t find your answer? Write to us via WhatsApp or email — we usually reply within a few hours.',
+      'faq.1.q': 'How long does a portrait take to be ready?',
+      'faq.1.a': 'We agree on an approximate delivery date around 30 days. We keep you updated on the progress throughout the process.',
+      'faq.2.q': 'Do you ship worldwide?',
+      'faq.2.a': 'Yes, we ship throughout Argentina and internationally.',
+      'faq.3.q': 'What photo do I need to send?',
+      'faq.3.a': 'Ideally a photo with natural light, in focus, where you can see your dog\'s face and eyes clearly. If you have several, send them all — we\'ll choose together. Old or low-resolution photos can still work; we do magic with those.',
+      'faq.4.q': 'What formats and sizes do you offer?',
+      'faq.4.a': 'Choose the size you want, from postcard up to A3.',
+      'faq.5.q': 'Can several dogs be portrayed on the same canvas?',
+      'faq.5.a': 'Yes, we can agree on the composition and work from several photos.',
+
+      'final.eyebrow': 'Start now',
+      'final.h2': 'A memento<br><span class="italic">you can keep forever.</span>',
+      'final.sub': 'Send us a photo of your dog today and we\'ll start the conversation. No upfront cost, no commitment — we talk through the idea, and if it clicks, we move forward.',
+      'final.wa': 'Write to us on WhatsApp',
+
+      'foot.tagline': 'Your Dog in a unique work of Art.',
+      'foot.about': 'Artists studio in Patagonia Argentina.',
+      'foot.navigate': 'Navigate',
+      'foot.contact': 'Contact',
+      'foot.follow': 'Follow',
+      'foot.copy': '© 2026 Patagonia Dog Art · All rights reserved',
+      'foot.made': 'Made with love in Patagonia',
+    }
+  };
+
+  // Snapshot original ES content for every translated node so we can restore
+  const originals = new Map();
+  document.querySelectorAll('[data-i18n], [data-i18n-html]').forEach(el => {
+    originals.set(el, { text: el.textContent, html: el.innerHTML });
+  });
+
+  const applyLang = (lang) => {
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.dataset.i18n;
+      if (lang === 'en' && I18N.en[key] !== undefined) {
+        el.textContent = I18N.en[key];
+      } else {
+        el.textContent = originals.get(el).text;
+      }
+    });
+    document.querySelectorAll('[data-i18n-html]').forEach(el => {
+      const key = el.dataset.i18nHtml;
+      if (lang === 'en' && I18N.en[key] !== undefined) {
+        el.innerHTML = I18N.en[key];
+      } else {
+        el.innerHTML = originals.get(el).html;
+      }
+    });
+    document.querySelectorAll('.lang-toggle button').forEach(b => {
+      b.classList.toggle('active', b.dataset.lang === lang);
+    });
+    try { localStorage.setItem('pda_lang', lang); } catch(e) {}
+  };
+
+  document.querySelectorAll('.lang-toggle button').forEach(btn => {
+    btn.addEventListener('click', () => applyLang(btn.dataset.lang));
+  });
+
+  // Restore saved language on load
+  try {
+    const saved = localStorage.getItem('pda_lang');
+    if (saved === 'en') applyLang('en');
+  } catch(e) {}
+</script>
+
+</body>
+</html>
