@@ -221,9 +221,25 @@
     font-size: 20px;
     font-weight: 500;
     letter-spacing: -0.02em;
+    white-space: nowrap;
   }
-  .brand-logo { margin-left: -55px; }
-  @media (max-width: 600px) { .brand-logo { margin-left: 0; } }
+  .brand-logo {
+    margin-left: -55px;
+    height: 130px;
+    width: auto;
+    display: block;
+    background: transparent;
+    mix-blend-mode: multiply;
+  }
+  @media (max-width: 600px) {
+    .brand-logo {
+      margin-left: -12px;
+      height: 50px;
+    }
+    .brand {
+      font-size: 15px;
+    }
+  }
   .brand-mark {
     width: 28px; height: 28px;
     border-radius: 50%;
@@ -1127,7 +1143,7 @@
 <header class="nav" id="nav">
   <div class="wrap nav-inner">
     <a href="#top" class="brand" aria-label="Patagonia Dog Art — Home">
-      <img src="images/logo.jpg" alt="Patagonia Dog Art" class="brand-logo" style="height:130px;width:auto;display:block;background:transparent;mix-blend-mode:multiply;">
+      <img src="images/logo.jpg" alt="Patagonia Dog Art" class="brand-logo">
     </a>
 
     <nav class="nav-links" aria-label="Primary">
