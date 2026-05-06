@@ -644,6 +644,12 @@
     grid-template-columns: repeat(2, 1fr);
     gap: clamp(12px, 1.5vw, 20px);
   }
+  .piece-extra { display: none; }
+  .gallery-more {
+    display: flex;
+    justify-content: center;
+    margin-top: clamp(24px, 3vw, 40px);
+  }
   @media (min-width: 720px) {
     .gallery { grid-template-columns: repeat(3, 1fr); }
   }
@@ -1325,6 +1331,33 @@
           <span style="display:none">POP ART · 50×50</span>
         </figcaption>
       </figure>
+      <figure class="piece piece-extra reveal" data-cat="realismo">
+        <img src="images/galeria-09.jpg" class="piece-art" style="object-fit:cover;width:100%;height:100%">
+        <figcaption class="piece-meta">
+          <span class="name">Nina</span>
+        </figcaption>
+      </figure>
+      <figure class="piece piece-extra reveal d1" data-cat="acuarela">
+        <img src="images/galeria-10.jpg" class="piece-art" style="object-fit:cover;width:100%;height:100%">
+        <figcaption class="piece-meta">
+          <span class="name">Lenkau</span>
+        </figcaption>
+      </figure>
+      <figure class="piece piece-extra reveal d2" data-cat="minimal">
+        <img src="images/galeria-11.jpg" class="piece-art" style="object-fit:cover;width:100%;height:100%">
+        <figcaption class="piece-meta">
+          <span class="name">Rugby</span>
+        </figcaption>
+      </figure>
+      <figure class="piece piece-extra reveal d3" data-cat="popart">
+        <img src="images/galeria-12.jpg" class="piece-art" style="object-fit:cover;width:100%;height:100%">
+        <figcaption class="piece-meta">
+          <span class="name">Tokyo</span>
+        </figcaption>
+      </figure>
+    </div>
+    <div class="gallery-more" id="gallery-more-wrap">
+      <button id="gallery-more-btn" class="btn btn-ghost" data-i18n="gal.more">Ver más obras</button>
     </div>
   </div>
 </section>
@@ -1691,19 +1724,39 @@
     });
   });
 
-  /* ----- Gallery filter ----- */
-  const filters = document.querySelectorAll('.gallery-bar button');
-  const pieces  = document.querySelectorAll('.piece');
+  /* ----- Gallery filter + "Ver más" ----- */
+  const filters   = document.querySelectorAll('.gallery-bar button');
+  const pieces    = document.querySelectorAll('.piece');
+  const moreWrap  = document.getElementById('gallery-more-wrap');
+  const moreBtn   = document.getElementById('gallery-more-btn');
+  let galleryExpanded = false;
+
+  function applyFilter(cat) {
+    pieces.forEach(p => {
+      if (p.classList.contains('piece-extra') && !galleryExpanded) return;
+      const show = cat === 'all' || p.dataset.cat === cat;
+      p.style.display = show ? '' : 'none';
+    });
+  }
+
   filters.forEach(btn => {
     btn.addEventListener('click', () => {
       filters.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      const cat = btn.dataset.filter;
-      pieces.forEach(p => {
-        const show = cat === 'all' || p.dataset.cat === cat;
-        p.style.display = show ? '' : 'none';
-      });
+      applyFilter(btn.dataset.filter);
     });
+  });
+
+  moreBtn.addEventListener('click', () => {
+    galleryExpanded = true;
+    moreWrap.style.display = 'none';
+    const extras = document.querySelectorAll('.piece-extra');
+    extras.forEach((p, i) => {
+      p.classList.remove('piece-extra');
+      setTimeout(() => p.classList.add('in'), i * 80);
+    });
+    const activeBtn = document.querySelector('.gallery-bar button.active');
+    if (activeBtn) applyFilter(activeBtn.dataset.filter);
   });
 
   /* ----- i18n ----- */
@@ -1746,6 +1799,7 @@
       'gal.all': 'All',
       'gal.watercolor': 'Watercolor',
       'gal.realism': 'Realism',
+      'gal.more': 'View more works',
 
       'test.eyebrow': 'Testimonials',
       'test.h2': 'Hear from<br><span class="italic" style="color:var(--accent);font-weight:300">the owners.</span>',
